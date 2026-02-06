@@ -351,7 +351,16 @@ impl_primitive!(LineF2, 0x40);
 impl_primitive!(LineG2, 0x50);
 //impl_primitive!(LineGN<N>, 0x58);
 impl_primitive!(Tile, 0x60);
+impl Tile {
+    color_fn!();
+    offset_fn!();
+    size_fn!();
+}
 impl_primitive!(Tile1, 0x68);
+impl Tile1 {
+    color_fn!();
+    offset_fn!();
+}
 impl_primitive!(Tile8, 0x70);
 impl Tile8 {
     color_fn!();
