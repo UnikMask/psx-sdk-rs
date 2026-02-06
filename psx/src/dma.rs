@@ -145,6 +145,8 @@ impl<A: MemoryAddress, B: BlockControl, C: ChannelControl> Channel<A, B, C> {
     /// This blocks if the function `f` returns before the transfer completes.
     /// Returns `f`'s return value or `None` if the buffer is too large.
     pub fn send_and<F: FnOnce() -> R, R>(&mut self, block: &[u32], f: F) -> Result<R> {
+        self.control.set_step(Step::Forward);
+
         // If the block is empty, just call `f` and return
         let addr = match self.block_address(block) {
             Some(addr) => addr,
@@ -169,6 +171,35 @@ impl<A: MemoryAddress, B: BlockControl, C: ChannelControl> Channel<A, B, C> {
             asm!("nop");
         }
         Ok(res)
+    }
+
+    pub fn send_reverse(&mut self, block: &[u32]) -> Result<()> {
+        // Set backward step
+        self.control.set_step(Step::Backward);
+
+        // If the block is empty, just call `f` and return
+        let addr = match self.block_address(block) {
+            Some(addr) => addr,
+            None => return Ok(()),
+        };
+        self.madr.set_address(addr).store();
+        // If the block is too long error out
+        self.bcr.set_block(block.len())?.store();
+        // Start the DMA transfer
+        self.control
+            .set_mode(TransferMode::Immediate)
+            .start()
+            .store();
+        // This acts like a compiler fence
+        unsafe {
+            asm!("nop");
+        }
+        self.control.wait();
+        // This acts like a compiler fence
+        unsafe {
+            asm!("nop");
+        }
+        Ok(())
     }
 
     /// Sends a buffer through a DMA channel in multi-block mode and call `f`
