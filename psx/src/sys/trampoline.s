@@ -2,529 +2,620 @@
 .set noreorder
 
 .section .text.bios.psx_file_open
-.globl psx_file_open
+.global psx_file_open
+.type psx_file_open, @function
 psx_file_open:
-    la $8, 0xA0
-    jr $8
-    li $9, 0x00
+    la $t2, 0xA0
+    jr $t2
+    li $t1, 0x00
 
 .section .text.bios.psx_file_seek
-.globl psx_file_seek
+.global psx_file_seek
+.type psx_file_seek, @function
 psx_file_seek:
-    la $8, 0xA0
-    jr $8
-    li $9, 0x01
+    la $t2, 0xA0
+    jr $t2
+    li $t1, 0x01
 
 .section .text.bios.psx_file_read
-.globl psx_file_read
+.global psx_file_read
+.type psx_file_read, @function
 psx_file_read:
-    la $8, 0xA0
-    jr $8
-    li $9, 0x02
+    la $t2, 0xA0
+    jr $t2
+    li $t1, 0x02
 
 .section .text.bios.psx_file_write
-.globl psx_file_write
+.global psx_file_write
+.type psx_file_write, @function
 psx_file_write:
-    la $8, 0xA0
-    jr $8
-    li $9, 0x03
+    la $t2, 0xA0
+    jr $t2
+    li $t1, 0x03
 
 .section .text.bios.psx_file_close
-.globl psx_file_close
+.global psx_file_close
+.type psx_file_close, @function
 psx_file_close:
-    la $8, 0xA0
-    jr $8
-    li $9, 0x04
+    la $t2, 0xA0
+    jr $t2
+    li $t1, 0x04
 
 .section .text.bios.psx_exit
-.globl psx_exit
+.global psx_exit
+.type psx_exit, @function
 psx_exit:
-    la $8, 0xA0
-    jr $8
-    li $9, 0x06
+    la $t2, 0xA0
+    jr $t2
+    li $t1, 0x06
 
 .section .text.bios.psx_save_state
-.globl psx_save_state
+.global psx_save_state
+.type psx_save_state, @function
 psx_save_state:
-    la $8, 0xA0
-    jr $8
-    li $9, 0x13
+    la $t2, 0xA0
+    jr $t2
+    li $t1, 0x13
 
 .section .text.bios.psx_restore_state
-.globl psx_restore_state
+.global psx_restore_state
+.type psx_restore_state, @function
 psx_restore_state:
-    la $8, 0xA0
-    jr $8
-    li $9, 0x14
+    la $t2, 0xA0
+    jr $t2
+    li $t1, 0x14
 
 .section .text.bios.psx_rand
-.globl psx_rand
+.global psx_rand
+.type psx_rand, @function
 psx_rand:
-    la $8, 0xA0
-    jr $8
-    li $9, 0x2F
+    la $t2, 0xA0
+    jr $t2
+    li $t1, 0x2F
 
 .section .text.bios.psx_srand
-.globl psx_srand
+.global psx_srand
+.type psx_srand, @function
 psx_srand:
-    la $8, 0xA0
-    jr $8
-    li $9, 0x30
+    la $t2, 0xA0
+    jr $t2
+    li $t1, 0x30
 
 .section .text.bios.psx_malloc
-.globl psx_malloc
+.global psx_malloc
+.type psx_malloc, @function
 psx_malloc:
-    la $8, 0xA0
-    jr $8
-    li $9, 0x33
+    la $t2, 0xA0
+    jr $t2
+    li $t1, 0x33
 
 .section .text.bios.psx_free
-.globl psx_free
+.global psx_free
+.type psx_free, @function
 psx_free:
-    la $8, 0xA0
-    jr $8
-    li $9, 0x34
+    la $t2, 0xA0
+    jr $t2
+    li $t1, 0x34
 
 .section .text.bios.psx_calloc
-.globl psx_calloc
+.global psx_calloc
+.type psx_calloc, @function
 psx_calloc:
-    la $8, 0xA0
-    jr $8
-    li $9, 0x37
+    la $t2, 0xA0
+    jr $t2
+    li $t1, 0x37
 
 .section .text.bios.psx_realloc
-.globl psx_realloc
+.global psx_realloc
+.type psx_realloc, @function
 psx_realloc:
-    la $8, 0xA0
-    jr $8
-    li $9, 0x38
+    la $t2, 0xA0
+    jr $t2
+    li $t1, 0x38
 
 .section .text.bios.psx_init_heap
-.globl psx_init_heap
+.global psx_init_heap
+.type psx_init_heap, @function
 psx_init_heap:
-    la $8, 0xA0
-    jr $8
-    li $9, 0x39
+    la $t2, 0xA0
+    jr $t2
+    li $t1, 0x39
 
 .section .text.bios.psx_system_error_exit
-.globl psx_system_error_exit
+.global psx_system_error_exit
+.type psx_system_error_exit, @function
 psx_system_error_exit:
-    la $8, 0xA0
-    jr $8
-    li $9, 0x3A
+    la $t2, 0xA0
+    jr $t2
+    li $t1, 0x3A
 
 .section .text.bios.psx_std_out_putchar
-.globl psx_std_out_putchar
+.global psx_std_out_putchar
+.type psx_std_out_putchar, @function
 psx_std_out_putchar:
-    la $8, 0xB0
-    jr $8
-    li $9, 0x3D
+    la $t2, 0xB0
+    jr $t2
+    li $t1, 0x3D
 
 .section .text.bios.psx_std_out_puts
-.globl psx_std_out_puts
+.global psx_std_out_puts
+.type psx_std_out_puts, @function
 psx_std_out_puts:
-    la $8, 0xA0
-    jr $8
-    li $9, 0x3E
+    la $t2, 0xA0
+    jr $t2
+    li $t1, 0x3E
 
 .section .text.bios.psx_printf
-.globl psx_printf
+.global psx_printf
+.type psx_printf, @function
 psx_printf:
-    la $8, 0xA0
-    jr $8
-    li $9, 0x3F
+    la $t2, 0xA0
+    jr $t2
+    li $t1, 0x3F
 
 .section .text.bios.psx_load_exe_header
-.globl psx_load_exe_header
+.global psx_load_exe_header
+.type psx_load_exe_header, @function
 psx_load_exe_header:
-    la $8, 0xA0
-    jr $8
-    li $9, 0x41
+    la $t2, 0xA0
+    jr $t2
+    li $t1, 0x41
 
 .section .text.bios.psx_load_exe_file
-.globl psx_load_exe_file
+.global psx_load_exe_file
+.type psx_load_exe_file, @function
 psx_load_exe_file:
-    la $8, 0xA0
-    jr $8
-    li $9, 0x42
+    la $t2, 0xA0
+    jr $t2
+    li $t1, 0x42
 
 .section .text.bios.psx_do_execute
-.globl psx_do_execute
+.global psx_do_execute
+.type psx_do_execute, @function
 psx_do_execute:
-    la $8, 0xA0
-    jr $8
-    li $9, 0x43
+    la $t2, 0xA0
+    jr $t2
+    li $t1, 0x43
 
 .section .text.bios.psx_flush_cache
-.globl psx_flush_cache
+.global psx_flush_cache
+.type psx_flush_cache, @function
 psx_flush_cache:
-    la $8, 0xA0
-    jr $8
-    li $9, 0x44
+    la $t2, 0xA0
+    jr $t2
+    li $t1, 0x44
 
 .section .text.bios.psx_gpu_send_dma
-.globl psx_gpu_send_dma
+.global psx_gpu_send_dma
+.type psx_gpu_send_dma, @function
 psx_gpu_send_dma:
-    la $8, 0xA0
-    jr $8
-    li $9, 0x47
+    la $t2, 0xA0
+    jr $t2
+    li $t1, 0x47
 
 .section .text.bios.psx_gp1_command
-.globl psx_gp1_command
+.global psx_gp1_command
+.type psx_gp1_command, @function
 psx_gp1_command:
-    la $8, 0xA0
-    jr $8
-    li $9, 0x48
+    la $t2, 0xA0
+    jr $t2
+    li $t1, 0x48
 
 .section .text.bios.psx_gp0_command
-.globl psx_gp0_command
+.global psx_gp0_command
+.type psx_gp0_command, @function
 psx_gp0_command:
-    la $8, 0xA0
-    jr $8
-    li $9, 0x49
+    la $t2, 0xA0
+    jr $t2
+    li $t1, 0x49
 
 .section .text.bios.psx_gp0_command_params
-.globl psx_gp0_command_params
+.global psx_gp0_command_params
+.type psx_gp0_command_params, @function
 psx_gp0_command_params:
-    la $8, 0xA0
-    jr $8
-    li $9, 0x4A
+    la $t2, 0xA0
+    jr $t2
+    li $t1, 0x4A
 
 .section .text.bios.psx_gpu_get_status
-.globl psx_gpu_get_status
+.global psx_gpu_get_status
+.type psx_gpu_get_status, @function
 psx_gpu_get_status:
-    la $8, 0xA0
-    jr $8
-    li $9, 0x4D
+    la $t2, 0xA0
+    jr $t2
+    li $t1, 0x4D
 
 .section .text.bios.psx_gpu_sync
-.globl psx_gpu_sync
+.global psx_gpu_sync
+.type psx_gpu_sync, @function
 psx_gpu_sync:
-    la $8, 0xA0
-    jr $8
-    li $9, 0x4E
+    la $t2, 0xA0
+    jr $t2
+    li $t1, 0x4E
 
 .section .text.bios.psx_load_and_execute
-.globl psx_load_and_execute
+.global psx_load_and_execute
+.type psx_load_and_execute, @function
 psx_load_and_execute:
-    la $8, 0xA0
-    jr $8
-    li $9, 0x51
+    la $t2, 0xA0
+    jr $t2
+    li $t1, 0x51
 
 .section .text.bios.psx_cd_init
-.globl psx_cd_init
+.global psx_cd_init
+.type psx_cd_init, @function
 psx_cd_init:
-    la $8, 0xA0
-    jr $8
-    li $9, 0x54
+    la $t2, 0xA0
+    jr $t2
+    li $t1, 0x54
 
 .section .text.bios.psx_cd_remove
-.globl psx_cd_remove
+.global psx_cd_remove
+.type psx_cd_remove, @function
 psx_cd_remove:
-    la $8, 0xA0
-    jr $8
-    li $9, 0x56
+    la $t2, 0xA0
+    jr $t2
+    li $t1, 0x56
 
 .section .text.bios.psx_cd_async_get_status
-.globl psx_cd_async_get_status
+.global psx_cd_async_get_status
+.type psx_cd_async_get_status, @function
 psx_cd_async_get_status:
-    la $8, 0xA0
-    jr $8
-    li $9, 0x7C
+    la $t2, 0xA0
+    jr $t2
+    li $t1, 0x7C
 
 .section .text.bios.psx_add_cdrom_device
-.globl psx_add_cdrom_device
+.global psx_add_cdrom_device
+.type psx_add_cdrom_device, @function
 psx_add_cdrom_device:
-    la $8, 0xA0
-    jr $8
-    li $9, 0x96
+    la $t2, 0xA0
+    jr $t2
+    li $t1, 0x96
 
 .section .text.bios.psx_set_memsize
-.globl psx_set_memsize
+.global psx_set_memsize
+.type psx_set_memsize, @function
 psx_set_memsize:
-    la $8, 0xA0
-    jr $8
-    li $9, 0x9F
+    la $t2, 0xA0
+    jr $t2
+    li $t1, 0x9F
 
 .section .text.bios.psx_warm_boot
-.globl psx_warm_boot
+.global psx_warm_boot
+.type psx_warm_boot, @function
 psx_warm_boot:
-    la $8, 0xA0
-    jr $8
-    li $9, 0xA0
+    la $t2, 0xA0
+    jr $t2
+    li $t1, 0xA0
 
 .section .text.bios.psx_cd_get_lbn
-.globl psx_cd_get_lbn
+.global psx_cd_get_lbn
+.type psx_cd_get_lbn, @function
 psx_cd_get_lbn:
-    la $8, 0xA0
-    jr $8
-    li $9, 0xA4
+    la $t2, 0xA0
+    jr $t2
+    li $t1, 0xA4
 
 .section .text.bios.psx_cd_get_status
-.globl psx_cd_get_status
+.global psx_cd_get_status
+.type psx_cd_get_status, @function
 psx_cd_get_status:
-    la $8, 0xA0
-    jr $8
-    li $9, 0xA6
+    la $t2, 0xA0
+    jr $t2
+    li $t1, 0xA6
 
 .section .text.bios.psx_get_system_info
-.globl psx_get_system_info
+.global psx_get_system_info
+.type psx_get_system_info, @function
 psx_get_system_info:
-    la $8, 0xA0
-    jr $8
-    li $9, 0xB4
+    la $t2, 0xA0
+    jr $t2
+    li $t1, 0xB4
 
 .section .text.bios.psx_get_timer
-.globl psx_get_timer
+.global psx_get_timer
+.type psx_get_timer, @function
 psx_get_timer:
-    la $8, 0xB0
-    jr $8
-    li $9, 0x03
+    la $t2, 0xB0
+    jr $t2
+    li $t1, 0x03
 
 .section .text.bios.psx_enable_timer_irq
-.globl psx_enable_timer_irq
+.global psx_enable_timer_irq
+.type psx_enable_timer_irq, @function
 psx_enable_timer_irq:
-    la $8, 0xB0
-    jr $8
-    li $9, 0x04
+    la $t2, 0xB0
+    jr $t2
+    li $t1, 0x04
 
 .section .text.bios.psx_disable_timer_irq
-.globl psx_disable_timer_irq
+.global psx_disable_timer_irq
+.type psx_disable_timer_irq, @function
 psx_disable_timer_irq:
-    la $8, 0xB0
-    jr $8
-    li $9, 0x05
+    la $t2, 0xB0
+    jr $t2
+    li $t1, 0x05
 
 .section .text.bios.psx_restart_timer
-.globl psx_restart_timer
+.global psx_restart_timer
+.type psx_restart_timer, @function
 psx_restart_timer:
-    la $8, 0xB0
-    jr $8
-    li $9, 0x06
+    la $t2, 0xB0
+    jr $t2
+    li $t1, 0x06
 
 .section .text.bios.psx_deliver_event
-.globl psx_deliver_event
+.global psx_deliver_event
+.type psx_deliver_event, @function
 psx_deliver_event:
-    la $8, 0xB0
-    jr $8
-    li $9, 0x07
+    la $t2, 0xB0
+    jr $t2
+    li $t1, 0x07
 
 .section .text.bios.psx_open_event
-.globl psx_open_event
+.global psx_open_event
+.type psx_open_event, @function
 psx_open_event:
-    la $8, 0xB0
-    jr $8
-    li $9, 0x08
+    la $t2, 0xB0
+    jr $t2
+    li $t1, 0x08
 
 .section .text.bios.psx_close_event
-.globl psx_close_event
+.global psx_close_event
+.type psx_close_event, @function
 psx_close_event:
-    la $8, 0xB0
-    jr $8
-    li $9, 0x09
+    la $t2, 0xB0
+    jr $t2
+    li $t1, 0x09
 
 .section .text.bios.psx_wait_event
-.globl psx_wait_event
+.global psx_wait_event
+.type psx_wait_event, @function
 psx_wait_event:
-    la $8, 0xB0
-    jr $8
-    li $9, 0x0A
+    la $t2, 0xB0
+    jr $t2
+    li $t1, 0x0A
 
 .section .text.bios.psx_test_event
-.globl psx_test_event
+.global psx_test_event
+.type psx_test_event, @function
 psx_test_event:
-    la $8, 0xB0
-    jr $8
-    li $9, 0x0B
+    la $t2, 0xB0
+    jr $t2
+    li $t1, 0x0B
 
 .section .text.bios.psx_enable_event
-.globl psx_enable_event
+.global psx_enable_event
+.type psx_enable_event, @function
 psx_enable_event:
-    la $8, 0xB0
-    jr $8
-    li $9, 0x0C
+    la $t2, 0xB0
+    jr $t2
+    li $t1, 0x0C
 
 .section .text.bios.psx_disable_event
-.globl psx_disable_event
+.global psx_disable_event
+.type psx_disable_event, @function
 psx_disable_event:
-    la $8, 0xB0
-    jr $8
-    li $9, 0x0D
+    la $t2, 0xB0
+    jr $t2
+    li $t1, 0x0D
 
 .section .text.bios.psx_open_thread
-.globl psx_open_thread
+.global psx_open_thread
+.type psx_open_thread, @function
 psx_open_thread:
-    la $8, 0xB0
-    jr $8
-    li $9, 0x0E
+    la $t2, 0xB0
+    jr $t2
+    li $t1, 0x0E
 
 .section .text.bios.psx_close_thread
-.globl psx_close_thread
+.global psx_close_thread
+.type psx_close_thread, @function
 psx_close_thread:
-    la $8, 0xB0
-    jr $8
-    li $9, 0x0F
+    la $t2, 0xB0
+    jr $t2
+    li $t1, 0x0F
 
 .section .text.bios.psx_change_thread
-.globl psx_change_thread
+.global psx_change_thread
+.type psx_change_thread, @function
 psx_change_thread:
-    la $8, 0xB0
-    jr $8
-    li $9, 0x10
+    la $t2, 0xB0
+    jr $t2
+    li $t1, 0x10
 
 .section .text.bios.psx_init_pad
-.globl psx_init_pad
+.global psx_init_pad
+.type psx_init_pad, @function
 psx_init_pad:
-    la $8, 0xB0
-    jr $8
-    li $9, 0x12
+    la $t2, 0xB0
+    jr $t2
+    li $t1, 0x12
 
 .section .text.bios.psx_start_pad
-.globl psx_start_pad
+.global psx_start_pad
+.type psx_start_pad, @function
 psx_start_pad:
-    la $8, 0xB0
-    jr $8
-    li $9, 0x13
+    la $t2, 0xB0
+    jr $t2
+    li $t1, 0x13
 
 .section .text.bios.psx_stop_pad
-.globl psx_stop_pad
+.global psx_stop_pad
+.type psx_stop_pad, @function
 psx_stop_pad:
-    la $8, 0xB0
-    jr $8
-    li $9, 0x14
+    la $t2, 0xB0
+    jr $t2
+    li $t1, 0x14
+
+.section .text.bios.psx_return_from_exception
+.global psx_return_from_exception
+.type psx_return_from_exception, @function
+psx_return_from_exception:
+    la $t2, 0xB0
+    jr $t2
+    li $t1, 0x17
 
 .section .text.bios.psx_set_default_exit_from_exception
-.globl psx_set_default_exit_from_exception
+.global psx_set_default_exit_from_exception
+.type psx_set_default_exit_from_exception, @function
 psx_set_default_exit_from_exception:
-    la $8, 0xB0
-    jr $8
-    li $9, 0x18
+    la $t2, 0xB0
+    jr $t2
+    li $t1, 0x18
+
+.section .text.bios.psx_set_custom_exit_from_exception
+.global psx_set_custom_exit_from_exception
+.type psx_set_custom_exit_from_exception, @function
+psx_set_custom_exit_from_exception:
+    la $t2, 0xB0
+    jr $t2
+    li $t1, 0x19
 
 .section .text.bios.psx_undeliver_event
-.globl psx_undeliver_event
+.global psx_undeliver_event
+.type psx_undeliver_event, @function
 psx_undeliver_event:
-    la $8, 0xB0
-    jr $8
-    li $9, 0x20
+    la $t2, 0xB0
+    jr $t2
+    li $t1, 0x20
 
 .section .text.bios.psx_first_file
-.globl psx_first_file
+.global psx_first_file
+.type psx_first_file, @function
 psx_first_file:
-    la $8, 0xB0
-    jr $8
-    li $9, 0x42
+    la $t2, 0xB0
+    jr $t2
+    li $t1, 0x42
 
 .section .text.bios.psx_next_file
-.globl psx_next_file
+.global psx_next_file
+.type psx_next_file, @function
 psx_next_file:
-    la $8, 0xB0
-    jr $8
-    li $9, 0x43
+    la $t2, 0xB0
+    jr $t2
+    li $t1, 0x43
 
 .section .text.bios.psx_file_rename
-.globl psx_file_rename
+.global psx_file_rename
+.type psx_file_rename, @function
 psx_file_rename:
-    la $8, 0xB0
-    jr $8
-    li $9, 0x44
+    la $t2, 0xB0
+    jr $t2
+    li $t1, 0x44
 
 .section .text.bios.psx_file_delete
-.globl psx_file_delete
+.global psx_file_delete
+.type psx_file_delete, @function
 psx_file_delete:
-    la $8, 0xB0
-    jr $8
-    li $9, 0x45
+    la $t2, 0xB0
+    jr $t2
+    li $t1, 0x45
 
 .section .text.bios.psx_file_undelete
-.globl psx_file_undelete
+.global psx_file_undelete
+.type psx_file_undelete, @function
 psx_file_undelete:
-    la $8, 0xB0
-    jr $8
-    li $9, 0x46
+    la $t2, 0xB0
+    jr $t2
+    li $t1, 0x46
 
 .section .text.bios.psx_print_installed_devices
-.globl psx_print_installed_devices
+.global psx_print_installed_devices
+.type psx_print_installed_devices, @function
 psx_print_installed_devices:
-    la $8, 0xB0
-    jr $8
-    li $9, 0x49
+    la $t2, 0xB0
+    jr $t2
+    li $t1, 0x49
 
 .section .text.bios.psx_init_card
-.globl psx_init_card
+.global psx_init_card
+.type psx_init_card, @function
 psx_init_card:
-    la $8, 0xB0
-    jr $8
-    li $9, 0x4A
+    la $t2, 0xB0
+    jr $t2
+    li $t1, 0x4A
 
 .section .text.bios.psx_start_card
-.globl psx_start_card
+.global psx_start_card
+.type psx_start_card, @function
 psx_start_card:
-    la $8, 0xB0
-    jr $8
-    li $9, 0x4B
+    la $t2, 0xB0
+    jr $t2
+    li $t1, 0x4B
 
 .section .text.bios.psx_stop_card
-.globl psx_stop_card
+.global psx_stop_card
+.type psx_stop_card, @function
 psx_stop_card:
-    la $8, 0xB0
-    jr $8
-    li $9, 0x4C
+    la $t2, 0xB0
+    jr $t2
+    li $t1, 0x4C
 
 .section .text.bios.psx_get_last_error
-.globl psx_get_last_error
+.global psx_get_last_error
+.type psx_get_last_error, @function
 psx_get_last_error:
-    la $8, 0xB0
-    jr $8
-    li $9, 0x54
+    la $t2, 0xB0
+    jr $t2
+    li $t1, 0x54
 
 .section .text.bios.psx_get_last_file_error
-.globl psx_get_last_file_error
+.global psx_get_last_file_error
+.type psx_get_last_file_error, @function
 psx_get_last_file_error:
-    la $8, 0xB0
-    jr $8
-    li $9, 0x55
+    la $t2, 0xB0
+    jr $t2
+    li $t1, 0x55
 
 .section .text.bios.psx_change_clear_pad
-.globl psx_change_clear_pad
+.global psx_change_clear_pad
+.type psx_change_clear_pad, @function
 psx_change_clear_pad:
-    la $8, 0xB0
-    jr $8
-    li $9, 0x5B
+    la $t2, 0xB0
+    jr $t2
+    li $t1, 0x5B
 
 .section .text.bios.psx_change_clear_rcnt
-.globl psx_change_clear_rcnt
+.global psx_change_clear_rcnt
+.type psx_change_clear_rcnt, @function
 psx_change_clear_rcnt:
-    la $8, 0xC0
-    jr $8
-    li $9, 0x0A
+    la $t2, 0xC0
+    jr $t2
+    li $t1, 0x0A
 
 .section .text.bios.psx_flush_std_in_out_put
-.globl psx_flush_std_in_out_put
+.global psx_flush_std_in_out_put
+.type psx_flush_std_in_out_put, @function
 psx_flush_std_in_out_put:
-    la $8, 0xC0
-    jr $8
-    li $9, 0x13
+    la $t2, 0xC0
+    jr $t2
+    li $t1, 0x13
 
 .section .text.bios.psx_enter_critical_section
-.globl psx_enter_critical_section
+.global psx_enter_critical_section
+.type psx_enter_critical_section, @function
 psx_enter_critical_section:
-    li $4, 0x01
+    li $a0, 0x01
     syscall 0x0
     jr $ra
     nop
 
 .section .text.bios.psx_exit_critical_section
-.globl psx_exit_critical_section
+.global psx_exit_critical_section
+.type psx_exit_critical_section, @function
 psx_exit_critical_section:
-    li $4, 0x02
+    li $a0, 0x02
     syscall 0x0
     jr $ra
     nop
 
 .section .text.bios.psx_change_thread_sub_fn
-.globl psx_change_thread_sub_fn
+.global psx_change_thread_sub_fn
+.type psx_change_thread_sub_fn, @function
 psx_change_thread_sub_fn:
-    li $4, 0x03
+    li $a0, 0x03
     syscall 0x0
     jr $ra
     nop

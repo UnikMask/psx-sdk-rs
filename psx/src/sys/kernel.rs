@@ -5,6 +5,8 @@
 
 core::arch::global_asm!(include_str!("trampoline.s"));
 
+use core::ffi::c_void;
+
 extern "C" {
     /// Calls BIOS function [A(00h)](http://problemkaputt.de/psx-spx.htm#biosfunctionsummary)
     pub fn psx_file_open(filename: *const i8, accessmode: u32) -> i8;
@@ -118,8 +120,12 @@ extern "C" {
     pub fn psx_start_pad();
     /// Calls BIOS function [B(14h)](http://problemkaputt.de/psx-spx.htm#biosfunctionsummary)
     pub fn psx_stop_pad();
+    /// Calls BIOS function [B(17h)](http://problemkaputt.de/psx-spx.htm#biosfunctionsummary)
+    pub fn psx_return_from_exception();
     /// Calls BIOS function [B(18h)](http://problemkaputt.de/psx-spx.htm#biosfunctionsummary)
     pub fn psx_set_default_exit_from_exception();
+    /// Calls BIOS function [B(19h)](http://problemkaputt.de/psx-spx.htm#biosfunctionsummary)
+    pub fn psx_set_custom_exit_from_exception(addr: *const c_void);
     /// Calls BIOS function [B(20h)](http://problemkaputt.de/psx-spx.htm#biosfunctionsummary)
     pub fn psx_undeliver_event(class: u32, spec: u16);
     /// Calls BIOS function [B(42h)](http://problemkaputt.de/psx-spx.htm#biosfunctionsummary)
@@ -155,7 +161,7 @@ extern "C" {
     /// Calls BIOS function [SYS(02h)](http://problemkaputt.de/psx-spx.htm#biosfunctionsummary)
     pub fn psx_exit_critical_section();
     /// Calls BIOS function [SYS(03h)](http://problemkaputt.de/psx-spx.htm#biosfunctionsummary)
-    pub fn psx_change_thread_sub_fn(_: usize, addr: usize);
+    pub fn psx_change_thread_sub_fn(addr: usize);
 }
 /// The BIOS function number for file_open
 pub const FILE_OPEN_NUM: u8 = 0x00;
@@ -381,10 +387,18 @@ pub const START_PAD_TY: u8 = 0xB0;
 pub const STOP_PAD_NUM: u8 = 0x14;
 /// The BIOS function type for stop_pad
 pub const STOP_PAD_TY: u8 = 0xB0;
+/// The BIOS function number for return_from_exception
+pub const RETURN_FROM_EXCEPTION_NUM: u8 = 0x17;
+/// The BIOS function type for return_from_exception
+pub const RETURN_FROM_EXCEPTION_TY: u8 = 0xB0;
 /// The BIOS function number for set_default_exit_from_exception
 pub const SET_DEFAULT_EXIT_FROM_EXCEPTION_NUM: u8 = 0x18;
 /// The BIOS function type for set_default_exit_from_exception
 pub const SET_DEFAULT_EXIT_FROM_EXCEPTION_TY: u8 = 0xB0;
+/// The BIOS function number for set_custom_exit_from_exception
+pub const SET_CUSTOM_EXIT_FROM_EXCEPTION_NUM: u8 = 0x19;
+/// The BIOS function type for set_custom_exit_from_exception
+pub const SET_CUSTOM_EXIT_FROM_EXCEPTION_TY: u8 = 0xB0;
 /// The BIOS function number for undeliver_event
 pub const UNDELIVER_EVENT_NUM: u8 = 0x20;
 /// The BIOS function type for undeliver_event
