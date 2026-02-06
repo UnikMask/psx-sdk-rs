@@ -26,3 +26,4 @@ compress/
 *.iso
 tools/
 *.txt
+**/rusty-tags.vi
