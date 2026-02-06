@@ -1,13 +1,15 @@
-use crate::dma;
-use crate::format::tim::TIM;
 use crate::gpu::colors::WHITE;
 use crate::gpu::primitives::Sprt8;
 use crate::gpu::{Clut, Color, DMAMode, Depth, DispEnv, DrawEnv, Packet, TexColor, TexCoord,
                  TexPage, Vertex, VertexError, VideoMode, GPU_BUFFER_SIZE};
-use crate::hw::gpu::{GP0Command, GP0, GP1};
-use crate::hw::irq::IRQ;
-use crate::hw::{gpu, irq, Register};
+use crate::hw::{gpu::{self, GP0Command, GP0, GP1},
+                irq::IRQ,
+                Register};
 use crate::include_tim;
+use crate::sys::irq_handler;
+use crate::sys::kernel::{psx_enter_critical_section, psx_exit_critical_section};
+use crate::{dma, format::tim::TIM};
+use core::ffi::c_void;
 use core::fmt;
 use core::mem::size_of;
 
@@ -29,10 +31,6 @@ pub struct Framebuffer {
     pub gp1: GP1,
     /// The read-only GPU status register
     pub gpu_status: gpu::Status,
-    /// The IRQ status register
-    pub irq_mask: irq::Mask,
-    /// The IRQ mask register
-    pub irq_status: irq::Status,
     disp_envs: [DispEnv; 2],
     draw_envs: [Packet<DrawEnv>; 2],
     swapped: bool,
@@ -42,6 +40,13 @@ impl Default for Framebuffer {
     fn default() -> Self {
         // SAFETY: The framebuffer parameters are valid.
         unsafe { Self::new((0, 0), (0, 240), (320, 240), VideoMode::NTSC, None).unwrap_unchecked() }
+    }
+}
+
+/// Callback for the vblank counter observed by the framebuffer.
+fn framebuffer_vblank_callback() {
+    unsafe {
+        VBLANK_COUNTER += 1;
     }
 }
 
@@ -56,14 +61,21 @@ impl Framebuffer {
         buf0: (i16, i16), buf1: (i16, i16), res: (i16, i16), video_mode: VideoMode,
         bg_color: Option<Color>,
     ) -> Result<Self, VertexError> {
+        let exit = unsafe { psx_enter_critical_section() };
+
+        // Set up callback system if not enabled yet
+        irq_handler::reset_callback();
+        irq_handler::set_callback(IRQ::Vblank, framebuffer_vblank_callback);
+
+        if exit {
+            unsafe { psx_exit_critical_section() }
+        };
+
         let mut fb = Framebuffer {
             // These registers are read-only
             gp0: GP0::skip_load(),
             gp1: GP1::skip_load(),
             gpu_status: gpu::Status::new(),
-            // wait_vblank will reload this anyway
-            irq_status: irq::Status::skip_load(),
-            irq_mask: irq::Mask::new(),
             disp_envs: [
                 DispEnv::new(buf0, res, video_mode)?,
                 DispEnv::new(buf1, res, video_mode)?,
@@ -75,14 +87,15 @@ impl Framebuffer {
             swapped: false,
         };
         let interlace = matches!(res.1, 480 | 512);
+
         GP1::skip_load()
             .reset_gpu()
             .dma_mode(Some(DMAMode::GP0))
             .display_mode(res, video_mode, Depth::Bits15, interlace)?
             .enable_display(true);
-        fb.irq_mask.enable_irq(IRQ::Vblank).store();
-        //fb.wait_vblank();
-        //fb.swap();
+
+        // fb.wait_vblank();
+        // fb.swap();
         Ok(fb)
     }
 
@@ -160,8 +173,24 @@ impl Framebuffer {
     }
 
     /// Spins until vblank.
-    pub fn wait_vblank(&mut self) {
-        self.irq_status.ack(IRQ::Vblank).store().wait(IRQ::Vblank);
+    ///
+    /// # Returns
+    /// Whether the vblank wait was successful or not, according to arbitrary
+    /// timeout. If `wait_vblank` returns false, it is recommended to log it.
+    pub fn wait_vblank(&mut self) -> bool {
+        const VSYNC_TIMEOUT: usize = 0x100000;
+        unsafe {
+            let vblank_target = VBLANK_COUNTER;
+            (0x8000aaa4 as *mut u32).write_volatile(0x0);
+            for _ in 0..VSYNC_TIMEOUT {
+                if (&raw const VBLANK_COUNTER).read_volatile() != vblank_target {
+                    (0x8000aaa4 as *mut u32).write_volatile(0x33);
+                    return true;
+                }
+            }
+            (0x8000aaa4 as *mut u32).write_volatile(0x34);
+            false
+        }
     }
 }
 
@@ -297,6 +326,9 @@ impl TextBox {
             self.buffer[self.idx]
                 .set_offset(self.cursor)
                 .set_tex_coord(TexCoord { x, y });
+
+            // TODO: Send commands to draw queue instead of doing it
+            // itself
             GP0::skip_load().send_command(&self.buffer[self.idx]);
             self.idx += 1;
             if self.idx == TEXT_BOX_BUFFER {
