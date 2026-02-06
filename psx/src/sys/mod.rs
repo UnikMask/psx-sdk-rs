@@ -11,6 +11,7 @@ pub mod heap;
 pub mod kernel;
 pub mod rng;
 pub mod setjmp;
+pub mod irq_handler;
 pub mod tty;
 
 /// Calls the given function in an interrupt-free critical section using BIOS
