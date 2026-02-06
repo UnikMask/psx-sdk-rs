@@ -1,5 +1,5 @@
-use crate::gpu::{Clut, Color, Command, TexColor, TexCoord, TexPage, Vertex};
-use crate::hw::gpu::GP0Command;
+use crate::{gpu::{Bpp, Clut, Color, Command, TexColor, TexCoord, TexPage, Vertex},
+            hw::gpu::GP0Command};
 use core::mem::{size_of, transmute};
 
 #[macro_use]
@@ -262,6 +262,36 @@ pub struct Sprt16 {
     offset: Vertex,
     t0: TexCoord,
     clut: Clut,
+}
+
+/// Texture-page command.
+#[repr(C)]
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub struct DrawModeTexPage {
+    // Bits 0-4, tex coords; 5-6: transparency; 7-8: texpage colors
+    // 9: Dither 24-bit to 15-bit
+    // 10: Draw to display area
+    data: u16,
+    dummy: u8,
+    cmd: Command,
+}
+
+impl_primitive!(DrawModeTexPage, 0xe1);
+impl DrawModeTexPage {
+    /// Build a Texpage GP0 (E1h) command from a texture page, dithering,
+    /// and draw_to_display_area options.
+    pub const fn from(
+        tex_page: TexPage, bpp: Bpp, dither: bool, draw_to_display_area: bool,
+    ) -> Self {
+        let mut res = Self::new();
+        res.data = unsafe {
+            core::mem::transmute::<TexPage, u16>(tex_page) |
+                ((bpp as u16) << 7) |
+                ((dither as u16) << 9) |
+                ((draw_to_display_area as u16) << 10)
+        };
+        res
+    }
 }
 
 impl_primitive!(PolyF3, 0x20);
