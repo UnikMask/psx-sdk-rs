@@ -9,7 +9,6 @@ use crate::include_tim;
 use crate::sys::irq_handler;
 use crate::sys::kernel::{psx_enter_critical_section, psx_exit_critical_section};
 use crate::{dma, format::tim::TIM};
-use core::ffi::c_void;
 use core::fmt;
 use core::mem::size_of;
 
@@ -19,6 +18,8 @@ fn draw_sync() {
         gpu_stat.load();
     }
 }
+
+static mut VBLANK_COUNTER: usize = 0;
 
 /// A double-buffered framebuffer configuration
 ///
@@ -46,7 +47,7 @@ impl Default for Framebuffer {
 /// Callback for the vblank counter observed by the framebuffer.
 fn framebuffer_vblank_callback() {
     unsafe {
-        VBLANK_COUNTER += 1;
+        VBLANK_COUNTER = VBLANK_COUNTER.wrapping_add(1);
     }
 }
 
