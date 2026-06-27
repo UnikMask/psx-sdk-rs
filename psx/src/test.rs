@@ -16,10 +16,10 @@ macro_rules! fuzz {
     (|$($name:ident: $ty:ty),+| { $($body:tt)* }) => {
         {
             use const_random::const_random;
-            use crate::sys::rng::Rng;
+            use $crate::sys::rng::Rng;
 
             let rng = Rng::new(const_random!(u32));
-            for _ in 0..crate::test::MAX_TESTS {
+            for _ in 0..$crate::test::MAX_TESTS {
                 $(let $name = rng.rand::<$ty>();)*
                 $($body)*
             }
@@ -34,12 +34,12 @@ macro_rules! fuzz_data {
     (|$name:ident: &[$ty:ty]| { $($body:tt)* }) => {
         {
             use const_random::const_random;
-            use crate::sys::rng::Rng;
+            use $crate::sys::rng::Rng;
 
             const MAX_SIZE: usize = 1_000;
             const SIZE: usize = const_random!(usize) % MAX_SIZE;
             let mut rng = Rng::new(const_random!(u32));
-            for _ in 0..crate::test::MAX_TESTS {
+            for _ in 0..$crate::test::MAX_TESTS {
                 let mut ar: [$ty; SIZE] = [0; SIZE];
                 for n in 0..SIZE {
                     ar[n] = rng.rand::<$ty>();

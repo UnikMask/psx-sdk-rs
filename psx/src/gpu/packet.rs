@@ -107,6 +107,24 @@ impl<T> Packet<T> {
         }
     }
 
+    /// Inserts the list starting from `first` and ending at `last`, between
+    /// `self` and `next`.
+    ///
+    /// Before: `self` -> `next`
+    ///
+    /// After: `self` -> `first` -> ... -> `last` -> `next`
+    ///
+    /// The user must make sure that `first` and `last` are part of a same
+    /// linked list.
+    pub fn insert_packet_list<U>(&mut self, first: &mut Packet<U>, last: &mut Packet<U>) {
+        // FIXME: Complete hack done by Ayrton, supposedly due to issues with how
+        // Rust was optimizing this?
+        let (first, last) = (black_box(first), black_box(last));
+        let my_next = self.next;
+        self.next = PhysAddr::from(first);
+        last.next = my_next;
+    }
+
     /// Inserts `other` between `self` and the following packet.
     ///
     /// before: `self` -> `next`

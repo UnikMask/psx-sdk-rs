@@ -5,12 +5,14 @@ use crate::gpu::{Clut, Color, DMAMode, Depth, DispEnv, DrawEnv, Packet, TexColor
 use crate::hw::{gpu::{self, GP0Command, GP0, GP1},
                 irq::IRQ,
                 Register};
-use crate::include_tim;
 use crate::sys::irq_handler;
 use crate::sys::kernel::{psx_enter_critical_section, psx_exit_critical_section};
 use crate::{dma, format::tim::TIM};
-use core::fmt;
+use crate::{include_tim, println};
+use core::arch::asm;
 use core::mem::size_of;
+use core::ptr::{read_volatile, write_volatile};
+use core::{fmt, ptr};
 
 fn draw_sync() {
     let mut gpu_stat = gpu::Status::new();
@@ -95,8 +97,9 @@ impl Framebuffer {
             .display_mode(res, video_mode, Depth::Bits15, interlace)?
             .enable_display(true);
 
-        // fb.wait_vblank();
-        // fb.swap();
+        fb.draw_sync();
+        fb.wait_vblank();
+        fb.swap();
         Ok(fb)
     }
 
@@ -195,7 +198,7 @@ impl Framebuffer {
     }
 }
 
-impl fmt::Write for TextBox {
+impl<T: WriteMode> fmt::Write for TextBox<T> {
     fn write_str(&mut self, msg: &str) -> fmt::Result {
         // TODO: This may be unnecessary
         draw_sync();
@@ -227,42 +230,195 @@ pub struct LoadedTIM {
 const TEXT_BOX_BUFFER: usize = GPU_BUFFER_SIZE / size_of::<Sprt8>();
 
 /// A text box configuration and in-memory buffer.
-pub struct TextBox {
+pub struct TextBox<T: WriteMode> {
     color: TexColor,
     initial: Vertex,
     cursor: Vertex,
+    // Dynamic vertex for overall text box size
     size: Vertex,
+    data: T,
+}
+
+/// Trait describing a method with which a text box can write to be later
+/// displayed.
+pub trait WriteMode {
+    /// Write a character to the structure's screen representation and increment
+    /// it's internal index. Depending on the implementation, can either
+    /// directly display the char on the screen or keep it for later.
+    fn write_char(&mut self, sprt: Sprt8);
+    /// Reset the internal buffer to rewrite anew
+    fn reset(&mut self);
+}
+
+/// Text box configuration for direct mode - the text box calls GPU commands
+/// to GP0 directly via I/O and for each character.
+pub struct DirectMode {
     idx: usize,
     buffer: [Sprt8; TEXT_BOX_BUFFER],
 }
 
-impl LoadedTIM {
-    /// Creates a new text box using the loaded TIM as the font.
-    pub fn new_text_box(&self, offset: (i16, i16), size: (i16, i16)) -> TextBox {
+impl WriteMode for DirectMode {
+    fn write_char(&mut self, sprt: Sprt8) {
+        self.buffer[self.idx] = sprt;
+        GP0::skip_load().send_command(&self.buffer[self.idx]);
+        self.idx = (self.idx + 1) % TEXT_BOX_BUFFER;
+    }
+
+    fn reset(&mut self) {
+        self.idx = 0;
+    }
+}
+
+/// Text box configuration for direct mode - the text box gets called via DMA
+/// instead of GPU I/O, and has the call has to be done by the user who should
+/// link the the text box to a packet in a linked list.
+pub struct IndirectMode<const WIDTH: usize, const HEIGHT: usize>
+where [(); 2 * WIDTH * HEIGHT]: {
+    /// Starting index of the textbox after each reset
+    reset_index: usize,
+    /// Index and cursor for text box at current point
+    current_index: usize,
+    /// Buffer is made twice its regular size to accomodate for frame swapping,
+    /// and being able to write to the buffer as other parts are being printed.
+    ///
+    /// Buffer acts as a ring buffer - on each reset, the cursor for text
+    /// positioning is reset, but the reset index is updated to be the next
+    /// position the textbox should write to. This is to guarantee frameswapping
+    /// resilience.
+    buffer: [Packet<Sprt8>; 2 * WIDTH * HEIGHT],
+}
+
+impl<const WIDTH: usize, const HEIGHT: usize> WriteMode for IndirectMode<WIDTH, HEIGHT>
+where [(); 2 * WIDTH * HEIGHT]:
+{
+    fn write_char(&mut self, sprt: Sprt8) {
+        // Set char at current index, then if not starting letter, link letter
+        // to previous letter in the linked list.
+        println!(
+            "Writing char! ptr: {}",
+            (&raw const self.buffer[self.current_index]).addr()
+        );
+        self.buffer[self.current_index] = Packet::new(sprt);
+        if self.current_index != self.reset_index {
+            let [prev, cur] = &mut self.buffer[self.current_index - 1..=self.current_index] else {
+                unreachable!("Prior check done for this!");
+            };
+            prev.insert_packet(cur);
+        }
+
+        // Increment index, such that the index loops back if it goes past
+        // set width and height.
+        self.current_index =
+            ((self.current_index - self.reset_index) + 1 % (WIDTH * HEIGHT)) + self.reset_index;
+    }
+
+    fn reset(&mut self) {
+        // Increment reset index by half what it was, so it always essentially
+        // goes as 0 or WIDTH * HEIGHT.
+        //
+        // Then reset the first element of the buffer to break the previous linked list.
+        self.reset_index = (self.reset_index + (WIDTH * HEIGHT)) % (WIDTH * HEIGHT);
+        self.current_index = self.reset_index;
+        self.buffer[self.current_index] = Packet::new(Sprt8::new());
+    }
+}
+
+impl TextBox<DirectMode> {
+    /// Create a text box from a TIM loaded into memory, with a given offset and
+    /// size.
+    pub fn from_loaded_tim(tim: &LoadedTIM, offset: (i16, i16), size: (i16, i16)) -> Self {
         let offset = Vertex::new(offset);
         let size = Vertex::new(size);
         let color = TexColor::from(WHITE);
-        let mut buffer = [Sprt8::new(); TEXT_BOX_BUFFER];
-        for letter in &mut buffer {
-            if let Some(clut) = self.clut {
-                letter.set_clut(clut);
-            }
-            letter.set_color(color);
-        }
-        TextBox {
+
+        Self {
             color,
             initial: offset,
             cursor: offset,
             size,
-            idx: 0,
+            data: DirectMode::from(tim),
+        }
+    }
+}
+
+impl From<&LoadedTIM> for DirectMode {
+    fn from(tim: &LoadedTIM) -> Self {
+        let mut buffer = [Sprt8::new(); TEXT_BOX_BUFFER];
+        let color = TexColor::from(WHITE);
+        for letter in &mut buffer {
+            if let Some(clut) = tim.clut {
+                letter.set_clut(clut);
+            }
+            letter.set_color(color);
+        }
+        Self { idx: 0, buffer }
+    }
+}
+
+impl<const WIDTH: usize, const HEIGHT: usize> From<&LoadedTIM> for IndirectMode<WIDTH, HEIGHT>
+where [(); 2 * WIDTH * HEIGHT]:
+{
+    fn from(tim: &LoadedTIM) -> Self {
+        unsafe {
+            write_volatile(0x8000_f700 as *mut u32, 1);
+        }
+        let mut buffer = [const { Packet::new(Sprt8::new()) }; 2 * WIDTH * HEIGHT];
+        let color = TexColor::from(WHITE);
+        for packet in &mut buffer {
+            if let Some(clut) = tim.clut {
+                packet.contents.set_clut(clut);
+            }
+            packet.contents.set_color(color);
+        }
+        Self {
+            reset_index: 0,
+            current_index: 0,
             buffer,
+        }
+    }
+}
+
+impl<const WIDTH: usize, const HEIGHT: usize> TextBox<IndirectMode<WIDTH, HEIGHT>>
+where [(); 2 * WIDTH * HEIGHT]:
+{
+    /// Create a text box from a TIM loaded into memory, with a given offset and
+    /// const-time deduced size.
+    pub fn from_loaded_tim(tim: &LoadedTIM, offset: (i16, i16)) -> Self {
+        let offset = Vertex::new(offset);
+        let color = TexColor::from(WHITE);
+
+        Self {
+            color,
+            initial: offset,
+            cursor: offset,
+            size: Vertex(WIDTH as i16, HEIGHT as i16),
+            data: IndirectMode::<WIDTH, HEIGHT>::from(tim),
+        }
+    }
+
+    /// Get the first and last element of the current text box buffer
+    /// to set them up for display.
+    ///
+    /// # Returns
+    ///
+    /// The first and last char's packet mutable reference if there is multiple
+    /// chars, If there is only a single char, return only that packet.
+    /// Return `None` if there is no element available.
+    pub fn get_linked_list(&mut self) -> Option<(&mut Packet<Sprt8>, Option<&mut Packet<Sprt8>>)> {
+        match self.data.current_index - self.data.reset_index {
+            0 => None,
+            1 => Some((&mut self.data.buffer[self.data.reset_index], None)),
+            _ => {
+                let (first, last) = self.data.buffer.split_at_mut(self.data.current_index - 1);
+                Some((&mut first[self.data.reset_index], Some(&mut last[0])))
+            },
         }
     }
 }
 
 const FONT_SIZE: u8 = 8;
 
-impl TextBox {
+impl<T: WriteMode> TextBox<T> {
     /// Moves the cursor to the beginning of the next line.
     pub fn newline(&mut self) {
         self.cursor = Vertex(self.initial.0, self.cursor.1 + FONT_SIZE as i16);
@@ -270,6 +426,7 @@ impl TextBox {
     /// Moves the cursor to its initial position.
     pub fn reset(&mut self) {
         self.cursor = self.initial;
+        self.data.reset();
     }
     /// Moves the cursor up n characters.
     pub fn move_up(&mut self, n: usize) {
@@ -300,11 +457,9 @@ impl TextBox {
         let color = TexColor::from(color);
         if color != self.color {
             self.color = color;
-            for letter in &mut self.buffer {
-                letter.set_color(color);
-            }
         }
     }
+
     /// Prints a single character.
     pub fn print_char(&mut self, ascii: u8) {
         if ascii == b'\n' {
@@ -321,20 +476,12 @@ impl TextBox {
             };
             let x = (ascii % ascii_per_row) * FONT_SIZE;
             let y = (ascii / ascii_per_row) * FONT_SIZE;
-            if self.idx == 0 {
-                draw_sync();
-            }
-            self.buffer[self.idx]
-                .set_offset(self.cursor)
-                .set_tex_coord(TexCoord { x, y });
+            let mut sprt = Sprt8::new();
+            sprt.set_offset(self.cursor)
+                .set_tex_coord(TexCoord { x, y })
+                .set_color(self.color);
+            self.data.write_char(sprt);
 
-            // TODO: Send commands to draw queue instead of doing it
-            // itself
-            GP0::skip_load().send_command(&self.buffer[self.idx]);
-            self.idx += 1;
-            if self.idx == TEXT_BOX_BUFFER {
-                self.idx = 0;
-            }
             self.cursor.0 += FONT_SIZE as i16;
             if self.cursor.0 == self.initial.0 + self.size.0 {
                 self.newline();

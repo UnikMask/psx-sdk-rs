@@ -1,5 +1,6 @@
+use crate::framebuffer::DirectMode;
 use crate::hw::{cop0, Register};
-use crate::{dprintln, println, Framebuffer};
+use crate::{dprintln, println, Framebuffer, TextBox};
 
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo) -> ! {
@@ -20,6 +21,7 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
     })
 }
 
+#[allow(unused_variables)]
 fn display_panic(info: &core::panic::PanicInfo) {
     // Print to stdout unless no_panic is set. This includes the default case since
     // printing to the screen during a panic is not always reliable.
@@ -51,7 +53,8 @@ fn normal_panic(info: &core::panic::PanicInfo) {
     // We have no idea what state the GPU was in when the panic happened, so reset
     // it to a known state and reload the font into VRAM.
     let mut fb = Framebuffer::default();
-    let mut txt = fb.load_default_font().new_text_box((0, 8), (320, 240));
+    let mut txt =
+        TextBox::<DirectMode>::from_loaded_tim(&fb.load_default_font(), (0, 8), (320, 240));
     loop {
         txt.reset();
         match info.location() {

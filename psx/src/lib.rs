@@ -32,8 +32,6 @@
 #![deny(missing_docs)]
 // For compile-time Wavefront OBJ parser
 #![feature(maybe_uninit_array_assume_init)]
-// Used to make `AsCStr` efficient
-#![feature(maybe_uninit_slice, maybe_uninit_write_slice)]
 // Used to implement `ImplsAsCStr` trait
 #![feature(min_specialization)]
 // For global_asm! on MIPS
@@ -49,6 +47,7 @@
 #![test_runner(crate::test::runner)]
 #![reexport_test_harness_main = "main"]
 #![cfg_attr(test, no_main)]
+#![feature(generic_const_exprs)]
 
 // This module is first since it defines the fuzz macros for tests
 #[macro_use]
@@ -125,7 +124,7 @@ fn on_oom(layout: core::alloc::Layout) -> ! {
     panic!("Ran out of memory {:?}", layout);
 }
 
-pub use framebuffer::{Framebuffer, LoadedTIM, TextBox};
+pub use framebuffer::{DirectMode, Framebuffer, IndirectMode, LoadedTIM, TextBox, WriteMode};
 //pub use format::tim::{Bitmap, TIMError, TIM};
 
 /// A token ensuring that code is being executed in a critical section.
