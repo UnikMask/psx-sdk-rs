@@ -7,7 +7,7 @@ use crate::hw::{gpu::{self, GP0Command, GP0, GP1},
                 Register};
 use crate::sys::irq_handler;
 use crate::sys::kernel::{psx_enter_critical_section, psx_exit_critical_section};
-use crate::{breakpoint, include_tim, println};
+use crate::{breakpoint, include_tim};
 use crate::{dma, format::tim::TIM};
 use core::fmt;
 use core::mem::size_of;
@@ -405,6 +405,20 @@ impl<const MEM_SIZE: usize> TextBox<IndirectMode<MEM_SIZE>> {
                 let (first, last) = self.data.buffer.split_at_mut(self.data.current_index - 1);
                 Some((&mut first[self.data.reset_index], Some(&mut last[0])))
             },
+        }
+    }
+
+    /// Link the textbox's linked list to a given node/packet, inserting the
+    /// textbox's linked list into the given linked list.
+    pub fn link<T>(&mut self, packet: &mut Packet<T>) {
+        match self.get_linked_list() {
+            Some((first, Some(last))) => {
+                packet.insert_packet_list(first, last);
+            },
+            Some((first, None)) => {
+                packet.insert_packet(first);
+            },
+            None => {},
         }
     }
 }
