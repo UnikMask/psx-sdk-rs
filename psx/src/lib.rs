@@ -46,8 +46,6 @@
 #![feature(custom_test_frameworks)]
 #![test_runner(crate::test::runner)]
 #![reexport_test_harness_main = "main"]
-#![cfg_attr(test, no_main)]
-#![feature(generic_const_exprs)]
 
 // This module is first since it defines the fuzz macros for tests
 #[macro_use]

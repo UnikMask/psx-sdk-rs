@@ -11,8 +11,7 @@
 //! Heavily based on [psN00bSdk's interrupt management
 //! system](ttps://github.com/Lameguy64/PSn00bSDK/blob/master/libpsn00b/psxetc/
 //! interrupts.c)
-use crate::{breakpoint,
-            hw::{irq::{self, IRQ},
+use crate::{hw::{irq::{self, IRQ},
                  mmio::MemRegister,
                  Register},
             sys::{kernel::{psx_change_clear_pad, psx_change_clear_rcnt,
@@ -41,7 +40,7 @@ fn get_irq_handler_jmp_buf() -> JumpBuffer {
     unsafe {
         JumpBuffer {
             // > Pointer to "psx_return_from_exception" function
-            ra: global_irq_handler as u32,
+            ra: global_irq_handler as *const () as u32,
             // > usually exception stacktop, minus 4, for whatever reason
             sp: ((&raw const IRQ_HANDLER_STACK)
                 .cast::<u32>()

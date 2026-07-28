@@ -270,8 +270,7 @@ impl WriteMode for DirectMode {
 /// Text box configuration for direct mode - the text box gets called via DMA
 /// instead of GPU I/O, and has the call has to be done by the user who should
 /// link the the text box to a packet in a linked list.
-pub struct IndirectMode<const WIDTH: usize, const HEIGHT: usize>
-where [(); 2 * WIDTH * HEIGHT]: {
+pub struct IndirectMode<const MEM_SIZE: usize> {
     /// Starting index of the textbox after each reset
     reset_index: usize,
     /// Index and cursor for text box at current point
@@ -283,19 +282,13 @@ where [(); 2 * WIDTH * HEIGHT]: {
     /// positioning is reset, but the reset index is updated to be the next
     /// position the textbox should write to. This is to guarantee frameswapping
     /// resilience.
-    buffer: [Packet<Sprt8>; 2 * WIDTH * HEIGHT],
+    buffer: [Packet<Sprt8>; MEM_SIZE],
 }
 
-impl<const WIDTH: usize, const HEIGHT: usize> WriteMode for IndirectMode<WIDTH, HEIGHT>
-where [(); 2 * WIDTH * HEIGHT]:
-{
+impl<const MEM_SIZE: usize> WriteMode for IndirectMode<MEM_SIZE> {
     fn write_char(&mut self, sprt: Sprt8) {
         // Set char at current index, then if not starting letter, link letter
         // to previous letter in the linked list.
-        println!(
-            "Writing char! ptr: {}",
-            (&raw const self.buffer[self.current_index]).addr()
-        );
         self.buffer[self.current_index] = Packet::new(sprt);
         if self.current_index != self.reset_index {
             let [prev, cur] = &mut self.buffer[self.current_index - 1..=self.current_index] else {
@@ -307,7 +300,7 @@ where [(); 2 * WIDTH * HEIGHT]:
         // Increment index, such that the index loops back if it goes past
         // set width and height.
         self.current_index =
-            ((self.current_index - self.reset_index) + 1 % (WIDTH * HEIGHT)) + self.reset_index;
+            ((self.current_index - self.reset_index + 1) % (MEM_SIZE / 2)) + self.reset_index;
     }
 
     fn reset(&mut self) {
@@ -315,7 +308,11 @@ where [(); 2 * WIDTH * HEIGHT]:
         // goes as 0 or WIDTH * HEIGHT.
         //
         // Then reset the first element of the buffer to break the previous linked list.
-        self.reset_index = (self.reset_index + (WIDTH * HEIGHT)) % (WIDTH * HEIGHT);
+        self.reset_index = if self.reset_index == 0 {
+            MEM_SIZE / 2
+        } else {
+            0
+        };
         self.current_index = self.reset_index;
         self.buffer[self.current_index] = Packet::new(Sprt8::new());
     }
@@ -353,12 +350,10 @@ impl From<&LoadedTIM> for DirectMode {
     }
 }
 
-impl<const WIDTH: usize, const HEIGHT: usize> From<&LoadedTIM> for IndirectMode<WIDTH, HEIGHT>
-where [(); 2 * WIDTH * HEIGHT]:
-{
+impl<const MEM_SIZE: usize> From<&LoadedTIM> for IndirectMode<MEM_SIZE> {
     fn from(tim: &LoadedTIM) -> Self {
         breakpoint!(0x11); // Breakpoint from(tim)
-        let mut buffer = [const { Packet::new(Sprt8::new()) }; 2 * WIDTH * HEIGHT];
+        let mut buffer = [const { Packet::new(Sprt8::new()) }; MEM_SIZE];
         breakpoint!((&raw const buffer).addr() as u32); // Post-buffer breakpoint
         let color = TexColor::from(WHITE);
         for packet in &mut buffer {
@@ -375,12 +370,10 @@ where [(); 2 * WIDTH * HEIGHT]:
     }
 }
 
-impl<const WIDTH: usize, const HEIGHT: usize> TextBox<IndirectMode<WIDTH, HEIGHT>>
-where [(); 2 * WIDTH * HEIGHT]:
-{
+impl<const MEM_SIZE: usize> TextBox<IndirectMode<MEM_SIZE>> {
     /// Create a text box from a TIM loaded into memory, with a given offset and
     /// const-time deduced size.
-    pub fn from_loaded_tim(tim: &LoadedTIM, offset: (i16, i16)) -> Self {
+    pub fn from_loaded_tim(tim: &LoadedTIM, offset: (i16, i16), size: (i16, i16)) -> Self {
         let offset = Vertex::new(offset);
         let color = TexColor::from(WHITE);
 
@@ -388,8 +381,9 @@ where [(); 2 * WIDTH * HEIGHT]:
             color,
             initial: offset,
             cursor: offset,
-            size: Vertex(WIDTH as i16, HEIGHT as i16),
-            data: IndirectMode::<WIDTH, HEIGHT>::from(tim),
+            clut: tim.clut,
+            size: Vertex::new(size),
+            data: IndirectMode::<MEM_SIZE>::from(tim),
         }
     }
 
