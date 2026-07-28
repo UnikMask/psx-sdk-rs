@@ -230,6 +230,7 @@ const TEXT_BOX_BUFFER: usize = GPU_BUFFER_SIZE / size_of::<Sprt8>();
 /// A text box configuration and in-memory buffer.
 pub struct TextBox<T: WriteMode> {
     color: TexColor,
+    clut: Option<Clut>,
     initial: Vertex,
     cursor: Vertex,
     // Dynamic vertex for overall text box size
@@ -330,6 +331,7 @@ impl TextBox<DirectMode> {
             color,
             initial: offset,
             cursor: offset,
+            clut: tim.clut,
             size,
             data: DirectMode::from(tim),
         }
@@ -471,6 +473,9 @@ impl<T: WriteMode> TextBox<T> {
             sprt.set_offset(self.cursor)
                 .set_tex_coord(TexCoord { x, y })
                 .set_color(self.color);
+            if let Some(clut) = self.clut {
+                sprt.set_clut(clut);
+            }
             self.data.write_char(sprt);
 
             self.cursor.0 += FONT_SIZE as i16;
