@@ -142,3 +142,16 @@ impl CriticalSection {
         Self(())
     }
 }
+
+/// Writes to memory region `0x8000aaa4` - to consider as breakpoint memory,
+/// with given value. To have it act as breakpoint, listen to writes on that
+/// address with the given number.
+#[macro_export]
+macro_rules! breakpoint {
+    ($marker:expr) => {
+        #[allow(unused_unsafe)]
+        unsafe {
+            (0x8000aaa4 as *mut u32).write_volatile($marker)
+        }
+    };
+}

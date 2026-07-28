@@ -7,12 +7,10 @@ use crate::hw::{gpu::{self, GP0Command, GP0, GP1},
                 Register};
 use crate::sys::irq_handler;
 use crate::sys::kernel::{psx_enter_critical_section, psx_exit_critical_section};
+use crate::{breakpoint, include_tim, println};
 use crate::{dma, format::tim::TIM};
-use crate::{include_tim, println};
-use core::arch::asm;
+use core::fmt;
 use core::mem::size_of;
-use core::ptr::{read_volatile, write_volatile};
-use core::{fmt, ptr};
 
 fn draw_sync() {
     let mut gpu_stat = gpu::Status::new();
@@ -185,14 +183,14 @@ impl Framebuffer {
         const VSYNC_TIMEOUT: usize = 0x100000;
         unsafe {
             let vblank_target = VBLANK_COUNTER;
-            (0x8000aaa4 as *mut u32).write_volatile(0x0);
+            breakpoint!(0x2);
             for _ in 0..VSYNC_TIMEOUT {
                 if (&raw const VBLANK_COUNTER).read_volatile() != vblank_target {
-                    (0x8000aaa4 as *mut u32).write_volatile(0x33);
+                    breakpoint!(0x33);
                     return true;
                 }
             }
-            (0x8000aaa4 as *mut u32).write_volatile(0x34);
+            breakpoint!(0x34);
             false
         }
     }
@@ -359,10 +357,9 @@ impl<const WIDTH: usize, const HEIGHT: usize> From<&LoadedTIM> for IndirectMode<
 where [(); 2 * WIDTH * HEIGHT]:
 {
     fn from(tim: &LoadedTIM) -> Self {
-        unsafe {
-            write_volatile(0x8000_f700 as *mut u32, 1);
-        }
+        breakpoint!(0x11); // Breakpoint from(tim)
         let mut buffer = [const { Packet::new(Sprt8::new()) }; 2 * WIDTH * HEIGHT];
+        breakpoint!((&raw const buffer).addr() as u32); // Post-buffer breakpoint
         let color = TexColor::from(WHITE);
         for packet in &mut buffer {
             if let Some(clut) = tim.clut {

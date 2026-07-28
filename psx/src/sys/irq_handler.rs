@@ -11,7 +11,8 @@
 //! Heavily based on [psN00bSdk's interrupt management
 //! system](ttps://github.com/Lameguy64/PSn00bSDK/blob/master/libpsn00b/psxetc/
 //! interrupts.c)
-use crate::{hw::{irq::{self, IRQ},
+use crate::{breakpoint,
+            hw::{irq::{self, IRQ},
                  mmio::MemRegister,
                  Register},
             sys::{kernel::{psx_change_clear_pad, psx_change_clear_rcnt,
