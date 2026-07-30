@@ -116,7 +116,7 @@ impl<T> Packet<T> {
     ///
     /// The user must make sure that `first` and `last` are part of a same
     /// linked list.
-    pub fn insert_packet_list<U>(&mut self, first: &mut Packet<U>, last: &mut Packet<U>) {
+    pub fn insert_packet_list<U, V>(&mut self, first: &mut Packet<U>, last: &mut Packet<V>) {
         // FIXME: Complete hack done by Ayrton, supposedly due to issues with how
         // Rust was optimizing this?
         let (first, last) = (black_box(first), black_box(last));
