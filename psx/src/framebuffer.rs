@@ -7,7 +7,7 @@ use crate::hw::{gpu::{self, GP0Command, GP0, GP1},
                 Register};
 use crate::sys::irq_handler;
 use crate::sys::kernel::{psx_enter_critical_section, psx_exit_critical_section};
-use crate::{breakpoint, include_tim, println};
+use crate::{breakpoint, include_tim};
 use crate::{dma, format::tim::TIM};
 use core::fmt;
 use core::mem::size_of;
