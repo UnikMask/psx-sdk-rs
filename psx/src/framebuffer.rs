@@ -1,13 +1,13 @@
 use crate::gpu::colors::WHITE;
-use crate::gpu::primitives::Sprt8;
-use crate::gpu::{Clut, Color, DMAMode, Depth, DispEnv, DrawEnv, Packet, TexColor, TexCoord,
+use crate::gpu::primitives::{DrawModeTexPage, Sprt8};
+use crate::gpu::{Bpp, Clut, Color, DMAMode, Depth, DispEnv, DrawEnv, Packet, TexColor, TexCoord,
                  TexPage, Vertex, VertexError, VideoMode, GPU_BUFFER_SIZE};
 use crate::hw::{gpu::{self, GP0Command, GP0, GP1},
                 irq::IRQ,
                 Register};
 use crate::sys::irq_handler;
 use crate::sys::kernel::{psx_enter_critical_section, psx_exit_critical_section};
-use crate::{breakpoint, include_tim};
+use crate::{breakpoint, include_tim, println};
 use crate::{dma, format::tim::TIM};
 use core::fmt;
 use core::mem::size_of;
@@ -230,7 +230,7 @@ const TEXT_BOX_BUFFER: usize = GPU_BUFFER_SIZE / size_of::<Sprt8>();
 /// A text box configuration and in-memory buffer.
 pub struct TextBox<T: WriteMode> {
     color: TexColor,
-    clut: Option<Clut>,
+    tim: LoadedTIM,
     initial: Vertex,
     cursor: Vertex,
     // Dynamic vertex for overall text box size
@@ -276,6 +276,12 @@ pub struct IndirectMode<const MEM_SIZE: usize> {
     reset_index: usize,
     /// Index and cursor for text box at current point
     current_index: usize,
+    /// Original draw-mode tex page to copy from
+    tex_page: DrawModeTexPage,
+    /// Index selector for draw mode texture page
+    draw_mode_alternator: usize,
+    /// Texture page setter for font
+    draw_mode_packets: [Packet<DrawModeTexPage>; 2],
     /// Buffer is made twice its regular size to accomodate for frame swapping,
     /// and being able to write to the buffer as other parts are being printed.
     ///
@@ -314,6 +320,8 @@ impl<const MEM_SIZE: usize> WriteMode for IndirectMode<MEM_SIZE> {
         } else {
             0
         };
+        // Alternate between tex-page packets
+        self.draw_mode_alternator = (self.draw_mode_alternator + 1) & 1;
         self.current_index = self.reset_index;
         self.buffer[self.current_index] = Packet::new(Sprt8::new());
     }
@@ -331,7 +339,7 @@ impl TextBox<DirectMode> {
             color,
             initial: offset,
             cursor: offset,
-            clut: tim.clut,
+            tim: *tim,
             size,
             data: DirectMode::from(tim),
         }
@@ -364,10 +372,17 @@ impl<const MEM_SIZE: usize> From<&LoadedTIM> for IndirectMode<MEM_SIZE> {
             }
             packet.contents.set_color(color);
         }
+        let tex_page = DrawModeTexPage::from(tim.tex_page, Bpp::Bits4, false, true);
         Self {
             reset_index: 0,
             current_index: 0,
             buffer,
+            draw_mode_alternator: 0,
+            draw_mode_packets: [
+                Packet::<DrawModeTexPage>::new(tex_page),
+                Packet::<DrawModeTexPage>::new(tex_page),
+            ],
+            tex_page,
         }
     }
 }
@@ -383,7 +398,7 @@ impl<const MEM_SIZE: usize> TextBox<IndirectMode<MEM_SIZE>> {
             color,
             initial: offset,
             cursor: offset,
-            clut: tim.clut,
+            tim: *tim,
             size: Vertex::new(size),
             data: IndirectMode::<MEM_SIZE>::from(tim),
         }
@@ -397,14 +412,22 @@ impl<const MEM_SIZE: usize> TextBox<IndirectMode<MEM_SIZE>> {
     /// The first and last char's packet mutable reference if there is multiple
     /// chars, If there is only a single char, return only that packet.
     /// Return `None` if there is no element available.
-    pub fn get_linked_list(&mut self) -> Option<(&mut Packet<Sprt8>, Option<&mut Packet<Sprt8>>)> {
+    pub fn get_linked_list(
+        &mut self,
+    ) -> (&mut Packet<DrawModeTexPage>, Option<&mut Packet<Sprt8>>) {
+        let index = self.data.draw_mode_alternator;
+        self.data.draw_mode_packets[index] = Packet::<DrawModeTexPage>::new(self.data.tex_page);
+        if self.data.current_index - self.data.reset_index > 0 {
+            let (arr, last) = self.data.buffer[self.data.reset_index..]
+                .split_at_mut(self.data.current_index - self.data.reset_index - 1);
+            self.data.draw_mode_packets[index].insert_packet_list(&mut arr[0], &mut last[0]);
+        }
         match self.data.current_index - self.data.reset_index {
-            0 => None,
-            1 => Some((&mut self.data.buffer[self.data.reset_index], None)),
-            _ => {
-                let (first, last) = self.data.buffer.split_at_mut(self.data.current_index - 1);
-                Some((&mut first[self.data.reset_index], Some(&mut last[0])))
-            },
+            0 => (&mut self.data.draw_mode_packets[index], None),
+            _ => (
+                &mut self.data.draw_mode_packets[index],
+                Some(&mut self.data.buffer[self.data.current_index - 1]),
+            ),
         }
     }
 
@@ -412,13 +435,12 @@ impl<const MEM_SIZE: usize> TextBox<IndirectMode<MEM_SIZE>> {
     /// textbox's linked list into the given linked list.
     pub fn link<T>(&mut self, packet: &mut Packet<T>) {
         match self.get_linked_list() {
-            Some((first, Some(last))) => {
+            (first, Some(last)) => {
                 packet.insert_packet_list(first, last);
             },
-            Some((first, None)) => {
+            (first, None) => {
                 packet.insert_packet(first);
             },
-            None => {},
         }
     }
 }
@@ -487,7 +509,7 @@ impl<T: WriteMode> TextBox<T> {
             sprt.set_offset(self.cursor)
                 .set_tex_coord(TexCoord { x, y })
                 .set_color(self.color);
-            if let Some(clut) = self.clut {
+            if let Some(clut) = self.tim.clut {
                 sprt.set_clut(clut);
             }
             self.data.write_char(sprt);
