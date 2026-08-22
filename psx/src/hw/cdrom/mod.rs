@@ -73,13 +73,18 @@ pub fn get_bank() -> BankNumber {
     HSTS_ADDRESS::skip_load().read().get_current_bank()
 }
 
+/// Switch bank to another bank number
+pub fn switch_bank(bank: BankNumber) {
+    HSTS_ADDRESS::skip_load().change_bank(bank).store();
+}
+
 /// The memory register address for HSTS writes and ADDRESS reads
 pub type HSTS_ADDRESS = MemRegister<u8, 0x1F80_1800>;
 impl HSTS_ADDRESS {
     /// Switch host controller interface to a different bank.
-    pub fn change_bank(&mut self, bank_no: BankNumber) {
+    pub fn change_bank(&mut self, bank_no: BankNumber) -> &mut Self {
         *self.as_mut() = bank_no as u8;
-        self.store();
+        self
     }
 
     /// Read from address to fetch CD-ROM driver status
@@ -255,6 +260,14 @@ impl HintStsRead {
     pub fn get_flag(self) -> CdIntFlag {
         self.0.into()
     }
+
+    pub fn xa_adpcm_buffer_empty(self) -> bool {
+        self.0 & 0x8 != 0
+    }
+
+    pub fn xa_adpcm_buffer_write_ready(self) -> bool {
+        self.0 & 0x16 != 0
+    }
 }
 
 /// Fetch the latest results from the CD-ROM driver.
@@ -264,7 +277,9 @@ pub fn fetch_cd_result(reg: MemRegister<u8, 0x1F80_1801>) -> Option<Result<(), C
 
 /// Module for reads/writes on bank 0
 mod cd_bank0 {
-    use crate::hw::mmio::MemRegister;
+    use crate::hw::{cdrom::{switch_bank, CdCommand},
+                    mmio::MemRegister,
+                    Register};
 
     /// Memory register where command, wrdata, CI, and ATV2 writes are
     /// performed, and results are read.
@@ -277,6 +292,32 @@ mod cd_bank0 {
     /// Register to write for SMEN sound maps, and requesting read/write to
     /// buffer. Reads HINTMSK in read-mode.
     pub type HCHPCTL_HINTMSK = MemRegister<u8, 0x1F80_1803>;
+
+    /// Switch to this module's bank.
+    pub fn switch_to_bank() {
+        switch_bank(super::BankNumber::Zero);
+    }
+
+    /// Send a command to the CD-ROM.
+    ///
+    /// # Safety
+    /// To ensure proper output, make sure prior to running that the correct
+    /// bank has been selected
+    pub unsafe fn send_command(command: CdCommand) {
+        COMMAND_RSLT::skip_load().set_bits(command as u8).store();
+    }
+
+    /// Write given parameters to the parameters register.
+    ///
+    /// # Safety
+    /// The maximum size of the parameter should be no more than 16 bytes
+    pub unsafe fn write_parameter<T>(parameters: T) {
+        let mut params_reg = PARAMETER_RDDATA::skip_load();
+        let t_ptr = (&raw const parameters).cast::<u8>();
+        for i in 0..core::mem::size_of::<T>() {
+            params_reg.set_bits(unsafe { *t_ptr.add(i) }).store();
+        }
+    }
 }
 
 /// Module for reads/writes on bank 1
